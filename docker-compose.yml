@@ -1,0 +1,134 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: reachinbox-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: reachinbox
+      POSTGRES_PASSWORD: reachinbox
+      POSTGRES_DB: reachinbox
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reachinbox"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: reachinbox-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: reachinbox-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    container_name: reachinbox-backend
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:4000}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      COOKIE_NAME: ri_session
+      DATABASE_URL: postgres://reachinbox:reachinbox@postgres:5432/reachinbox
+      REDIS_URL: redis://redis:6379
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_INDEX: emails
+      ETHEREAL_USER: ${ETHEREAL_USER:-}
+      ETHEREAL_PASS: ${ETHEREAL_PASS:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:4000/auth/google/callback}
+      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
+      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET:-}
+      SLACK_REDIRECT_URI: ${SLACK_REDIRECT_URI:-http://localhost:4000/auth/slack/callback}
+      SLACK_SCOPES: ${SLACK_SCOPES:-chat:write,incoming-webhook}
+      DEFAULT_MIN_DELAY_MS: ${DEFAULT_MIN_DELAY_MS:-2000}
+      DEFAULT_MAX_EMAILS_PER_HOUR: ${DEFAULT_MAX_EMAILS_PER_HOUR:-200}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+    container_name: reachinbox-worker
+    restart: unless-stopped
+    environment:
+      SERVICE_ROLE: worker
+      NODE_ENV: production
+      DATABASE_URL: postgres://reachinbox:reachinbox@postgres:5432/reachinbox
+      REDIS_URL: redis://redis:6379
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_INDEX: emails
+      ETHEREAL_USER: ${ETHEREAL_USER:-}
+      ETHEREAL_PASS: ${ETHEREAL_PASS:-}
+      DEFAULT_MIN_DELAY_MS: ${DEFAULT_MIN_DELAY_MS:-2000}
+      DEFAULT_MAX_EMAILS_PER_HOUR: ${DEFAULT_MAX_EMAILS_PER_HOUR:-200}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${BACKEND_URL:-http://localhost:4000}
+    container_name: reachinbox-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  redisdata:
+  esdata:

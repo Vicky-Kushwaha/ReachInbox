@@ -1,0 +1,101 @@
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# =========================
+# Node dependencies
+# =========================
+node_modules/
+**/node_modules/
+
+# =========================
+# Build output
+# =========================
+dist/
+build/
+.next/
+out/
+coverage/
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Runtime / temporary files
+# =========================
+tmp/
+temp/
+*.tmp
+*.pid
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE / Editors
+# =========================
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+.idea/
+*.swp
+*.swo
+
+# =========================
+# TypeScript
+# =========================
+*.tsbuildinfo
+
+# =========================
+# Testing
+# =========================
+.nyc_output/
+playwright-report/
+test-results/
+
+# =========================
+# Next.js
+# =========================
+.next/
+.vercel/
+
+# =========================
+# Docker
+# =========================
+docker-compose.override.yml
+
+# =========================
+# Database / local data
+# =========================
+*.sqlite
+*.sqlite3
+data/
+
+# =========================
+# Uploads / generated files
+# =========================
+uploads/
+*.csv
+*.xlsx
+*.zip
+
+# =========================
+# Misc
+# =========================
+.cache/
+.eslintcache
