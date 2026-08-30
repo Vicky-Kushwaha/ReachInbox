@@ -99,3 +99,5 @@ uploads/
 # =========================
 .cache/
 .eslintcache
+
+.ethereal-cache.json

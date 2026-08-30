@@ -6,12 +6,17 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50: "#eef2ff",
-          100: "#e0e7ff",
-          500: "#6366f1",
-          600: "#4f46e5",
-          700: "#4338ca",
+          50: "#eefdf3",
+          100: "#d7f9e2",
+          200: "#b3f0cb",
+          400: "#34d17a",
+          500: "#1fb968",
+          600: "#16a34a",
+          700: "#128a3e",
         },
+      },
+      boxShadow: {
+        popover: "0 12px 32px -8px rgba(15, 23, 42, 0.18)",
       },
     },
   },

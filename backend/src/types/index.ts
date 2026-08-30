@@ -1,3 +1,10 @@
+export interface EmailAttachment {
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  dataBase64: string; // raw base64 payload, no data: prefix
+}
+
 export interface EmailJobData {
   emailId: number;
   senderId: number;
@@ -7,11 +14,13 @@ export interface EmailJobData {
   recipient: string;
   subject: string;
   body: string;
+  bodyHtml?: string | null;
+  attachments?: EmailAttachment[];
   maxEmailsPerHour: number;
   minDelayMs: number;
 }
 
-export type EmailStatus = "scheduled" | "processing" | "sent" | "failed" | "rescheduled";
+export type EmailStatus = "scheduled" | "processing" | "sent" | "failed" | "rescheduled" | "cancelled";
 
 export interface EmailRow {
   id: number;
@@ -20,8 +29,11 @@ export interface EmailRow {
   recipient: string;
   subject: string;
   body: string;
+  body_html: string | null;
+  attachments: EmailAttachment[];
   scheduled_time: string;
   status: EmailStatus;
+  starred: boolean;
   attempts: number;
   sent_at: string | null;
   error: string | null;

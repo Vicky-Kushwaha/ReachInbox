@@ -86,6 +86,8 @@ async function processEmailJob(job: Job<EmailJobData>, token?: string): Promise<
       to: data.recipient,
       subject: data.subject,
       text: data.body,
+      html: data.bodyHtml,
+      attachments: data.attachments,
     });
 
     await updateEmailRow(data.emailId, {

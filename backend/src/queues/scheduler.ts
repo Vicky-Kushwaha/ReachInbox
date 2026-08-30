@@ -20,7 +20,7 @@ import { EmailJobData } from "../types";
  */
 export async function reconcileScheduledEmails(): Promise<void> {
   const { rows } = await pool.query(
-    `SELECT e.id, e.sender_id, e.recipient, e.subject, e.body, e.scheduled_time,
+    `SELECT e.id, e.sender_id, e.recipient, e.subject, e.body, e.body_html, e.attachments, e.scheduled_time,
             c.max_emails_per_hour, c.min_delay_ms, c.user_id,
             s.name AS sender_name, s.from_email
      FROM emails e
@@ -43,6 +43,8 @@ export async function reconcileScheduledEmails(): Promise<void> {
       recipient: row.recipient,
       subject: row.subject,
       body: row.body,
+      bodyHtml: row.body_html,
+      attachments: row.attachments || [],
       maxEmailsPerHour: row.max_emails_per_hour,
       minDelayMs: row.min_delay_ms,
     };

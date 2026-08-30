@@ -103,9 +103,16 @@ services:
       ELASTICSEARCH_INDEX: emails
       ETHEREAL_USER: ${ETHEREAL_USER:-}
       ETHEREAL_PASS: ${ETHEREAL_PASS:-}
+      ETHEREAL_CACHE_PATH: /app/data/ethereal-cache.json
       DEFAULT_MIN_DELAY_MS: ${DEFAULT_MIN_DELAY_MS:-2000}
       DEFAULT_MAX_EMAILS_PER_HOUR: ${DEFAULT_MAX_EMAILS_PER_HOUR:-200}
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+    volumes:
+      # Persists the auto-generated Ethereal test account across container
+      # recreation (not just restarts) so old preview links keep working —
+      # without this, "docker compose up --build" would still churn accounts
+      # even though a plain restart wouldn't.
+      - ethereal-cache:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -119,10 +126,22 @@ services:
   frontend:
     build:
       context: ./frontend
-      args:
-        NEXT_PUBLIC_API_URL: ${BACKEND_URL:-http://localhost:4000}
     container_name: reachinbox-frontend
     restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${BACKEND_URL:-http://localhost:4000}
+      # Bind mounts on Windows/macOS Docker Desktop don't always emit native
+      # filesystem events reliably, so Next's watcher is told to poll instead
+      # — this is what makes hot reload actually fire on every platform.
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./frontend:/app
+      # Anonymous volumes for these two paths take precedence over the bind
+      # mount above, so the container's own (Linux-built) node_modules and
+      # .next cache are never shadowed by whatever's on the host.
+      - /app/node_modules
+      - /app/.next
     ports:
       - "3000:3000"
     depends_on:
@@ -132,3 +151,4 @@ volumes:
   pgdata:
   redisdata:
   esdata:
+  ethereal-cache:

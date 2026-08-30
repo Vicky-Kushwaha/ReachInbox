@@ -26,6 +26,7 @@ export const env = {
 
   ETHEREAL_USER: process.env.ETHEREAL_USER || "",
   ETHEREAL_PASS: process.env.ETHEREAL_PASS || "",
+  ETHEREAL_CACHE_PATH: process.env.ETHEREAL_CACHE_PATH || "./.ethereal-cache.json",
 
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || "",

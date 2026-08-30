@@ -1,4 +1,4 @@
-import { ScheduledEmail, ScheduleEmailPayload, SentEmail, User } from "./types";
+import { EmailDetail, EmailListItem, ScheduleEmailPayload, Sender, User } from "./types";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -53,17 +53,40 @@ export async function disconnectSlack(): Promise<void> {
   await request("/auth/slack/disconnect", { method: "POST" });
 }
 
-export async function fetchScheduledEmails(): Promise<ScheduledEmail[]> {
-  const res = await request<{ emails: ScheduledEmail[] }>("/api/emails/scheduled");
+export async function fetchSenders(): Promise<Sender[]> {
+  const res = await request<{ senders: Sender[] }>("/api/senders");
+  return res.senders;
+}
+
+export async function fetchScheduledEmails(): Promise<EmailListItem[]> {
+  const res = await request<{ emails: EmailListItem[] }>("/api/emails/scheduled");
   return res.emails;
 }
 
-export async function fetchSentEmails(): Promise<SentEmail[]> {
-  const res = await request<{ emails: SentEmail[] }>("/api/emails/sent");
+export async function fetchSentEmails(): Promise<EmailListItem[]> {
+  const res = await request<{ emails: EmailListItem[] }>("/api/emails/sent");
   return res.emails;
 }
 
-export async function scheduleEmails(payload: ScheduleEmailPayload): Promise<{ campaignId: number; scheduled: number }> {
+export async function fetchEmailDetail(id: number): Promise<EmailDetail> {
+  const res = await request<{ email: EmailDetail }>(`/api/emails/${id}`);
+  return res.email;
+}
+
+export async function setStarred(id: number, starred: boolean): Promise<void> {
+  await request(`/api/emails/${id}/star`, {
+    method: "PATCH",
+    body: JSON.stringify({ starred }),
+  });
+}
+
+export async function cancelEmail(id: number): Promise<void> {
+  await request(`/api/emails/${id}`, { method: "DELETE" });
+}
+
+export async function scheduleEmails(
+  payload: ScheduleEmailPayload
+): Promise<{ campaignId: number; scheduled: number }> {
   return request("/api/emails/schedule", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -74,4 +97,17 @@ export async function parseLeadsFile(file: File): Promise<{ count: number; email
   const form = new FormData();
   form.append("file", file);
   return request("/api/emails/parse-leads", { method: "POST", body: form });
+}
+
+export interface SearchResult {
+  id: string;
+  recipient: string;
+  subject: string;
+  body: string;
+  status: string;
+}
+
+export async function searchEmails(q: string): Promise<SearchResult[]> {
+  const res = await request<{ results: SearchResult[] }>(`/api/emails/search?q=${encodeURIComponent(q)}`);
+  return res.results;
 }

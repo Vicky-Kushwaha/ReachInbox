@@ -9,6 +9,7 @@ import { env } from "./config/env";
 import authRoutes from "./routes/auth";
 import slackRoutes from "./routes/slack";
 import emailRoutes from "./routes/emails";
+import senderRoutes from "./routes/senders";
 import { emailQueue } from "./queues/emailQueue";
 import { reconcileScheduledEmails } from "./queues/scheduler";
 import { ensureIndex } from "./services/elasticsearch";
@@ -36,6 +37,7 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/auth", authRoutes);
 app.use("/auth", slackRoutes);
 app.use("/api", emailRoutes);
+app.use("/api", senderRoutes);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("[unhandled]", err);

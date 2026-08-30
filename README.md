@@ -18,7 +18,7 @@ reachinbox-scheduler/
 ### Option A — one command (recommended)
 
 ```bash
-cp .env.example .env       # fill in Google/Slack OAuth creds
+cp .env.example .env       # fill in Google/Slack OAuth creds, see §3
 docker compose up -d --build
 ```
 
@@ -54,8 +54,6 @@ idempotent (safe on every restart).
 
 Useful when you want hot-reload on the backend/frontend instead of rebuilding images
 on every change.
-
-#### 1. Start infrastructure only
 
 #### 1. Start infrastructure only
 
@@ -260,17 +258,37 @@ Either way you will need to create your own:
 - [x] Elasticsearch indexing + `/api/emails/search`
 - [x] Live BullMQ dashboard via Bull-Board at `/admin/queues`
 - [x] Real Google OAuth (authorization-code flow) and real Slack OAuth
+- [x] HTML body + up to 3 attachments per campaign (stored as base64 in Postgres,
+      sent via Nodemailer's `attachments` option)
+- [x] Per-email starring (`PATCH /api/emails/:id/star`) and cancellation of
+      not-yet-sent emails (`DELETE /api/emails/:id`, removes the live BullMQ job)
+- [x] `GET /api/emails/:id` full detail endpoint and `GET /api/senders` for the
+      compose "From" picker
 
 **Frontend**
-- [x] "Continue with Google" → real backend OAuth redirect → dashboard
-- [x] Header with avatar, name, email, logout, and Slack connect/disconnect
-- [x] Scheduled Emails / Sent Emails tabs with counts
-- [x] Compose modal: subject, body, CSV/TXT lead upload (server-side parsed, count
-      shown), start time, delay between emails, hourly limit
-- [x] Tables with loading states and empty states
-- [x] Toast-based error handling
-- [x] TypeScript throughout, typed API responses/props, reusable `Button`/`Input`/
-      `Modal`/`Tabs`/`EmailTable` components
+- [x] UI rebuilt to match the provided Figma reference (login card, sidebar nav, message-list
+      Scheduled/Sent views, a reading-pane detail view, and a full-page Compose)
+- [x] "Login with Google" → real backend OAuth redirect → dashboard (the email/password
+      fields shown in the mockup are rendered for visual fidelity but are intentionally
+      inert — the backend only implements real Google OAuth per the assignment's "no mock"
+      requirement, and submitting them shows an honest toast saying so)
+- [x] Sidebar: user profile with avatar/name/email, dropdown for Slack connect/disconnect +
+      logout, pill Compose button, Scheduled/Sent nav with live counts
+- [x] Top bar: search (wired to `/api/emails/search`, debounced), status filter, refresh
+- [x] Message-list rows: recipient, amber "scheduled at" badge or neutral "Sent"/red "Failed"
+      badge, subject + preview snippet, star toggle (persisted via a real `starred` column
+      and `PATCH /api/emails/:id/star`, not a fake client-only toggle)
+- [x] Detail (reading-pane) view: sender info, full body (renders rich HTML if present,
+      falls back to plain text), image attachments with filename/size, and a real cancel
+      action for not-yet-sent emails (`DELETE /api/emails/:id` — removes the live BullMQ
+      job and marks the row `cancelled`, it doesn't just hide it client-side)
+- [x] Full-page Compose: From (sender picker), chip-based To field with paste/CSV-upload
+      support ("Upload List"), Subject, Delay/Hourly-limit fields, a rich-text editor
+      (bold/italic/underline/lists/indent/quote/highlight/link) with attachments, and a
+      "Send Later" popover with quick date/time presets — matching the mockup's compose flow
+- [x] Loading states, empty states, toast-based error handling throughout
+- [x] TypeScript throughout, typed API responses/props, reusable components
+      (`Avatar`, `StatusBadge`, `EmailList`, `RichTextEditor`, `SendLaterPopover`, etc.)
 
 ---
 
@@ -280,7 +298,17 @@ Either way you will need to create your own:
   Google name/email on first login, rather than building a full multi-sender
   management UI. The backend fully supports multiple senders per user
   (`senders` table, `senderId` param on the schedule API) — only the *UI* for adding
-  additional senders was left out to stay in scope.
+  additional senders was left out to stay in scope; the compose "From" field becomes
+  a real dropdown automatically if a user has more than one sender row.
+- **Rich text editor**: implemented with `contentEditable` + `document.execCommand`
+  rather than pulling in a full editor framework (TipTap/Slate/etc). `execCommand` is
+  deprecated but still broadly supported in evergreen browsers and was the pragmatic
+  choice for matching the mockup's toolbar without a heavy new dependency; the HTML it
+  produces is stored in `body_html` and sent via Nodemailer alongside a plain-text
+  fallback derived from the same content.
+- **Branding**: the mockup's sidebar logo ("ONB") was swapped for "RI" (ReachInbox) —
+  everything else about that panel (avatar, dropdown, pill Compose button, nav layout)
+  follows the reference as closely as I could get it from the screenshots.
 - **Rate limit window**: fixed hour-of-day buckets rather than a strict rolling 60
   minute window (see §2.3 for the exact trade-off and the sorted-set alternative).
 - **Retry/backoff**: failed sends retry 3x with exponential backoff (BullMQ's
